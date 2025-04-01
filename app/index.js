@@ -7,7 +7,7 @@ const { parse } = require('json2csv');
 const { dirname } = require("path");
 const makeDir = require("make-dir");
 
-// get the octokit handle 
+// get the octokit handle
 const GITHUB_TOKEN = core.getInput('GITHUB_TOKEN');
 const octokit = github.getOctokit(GITHUB_TOKEN);
 
@@ -21,11 +21,11 @@ const query =
   `query ($org_name: String! $repo_name: String! $pagination: String){
       repository(owner: $org_name name: $repo_name) {
         name
-        vulnerabilityAlerts(first: 50 after: $pagination) {     
+        vulnerabilityAlerts(first: 50 after: $pagination) {
           pageInfo {
               hasNextPage
               endCursor
-          }    
+          }
           totalCount
           nodes {
             id
@@ -35,7 +35,6 @@ const query =
             dismissReason
             dismissComment
             fixedAt
-            fixReason
             dependencyScope
             repository{
               name
@@ -137,10 +136,6 @@ const query =
   {
     label: 'Fixed At',
     value: 'fixedAt'
-  },
-  {
-    label: 'Fix Reason',
-    value: 'fixReason'
   }
   ];
 
@@ -169,15 +164,15 @@ async function run(org_Name, repo_Name, csv_path) {
       // invoke the graphql query execution
       await getAlerts(org_Name, repo_Name, pagination).then(alertResult => {
         let vulnerabilityNodes = alertResult.repository.vulnerabilityAlerts.nodes;
-        
+
         if(addTitleRow){
           alertCount = alertResult.repository.vulnerabilityAlerts.totalCount;
           console.log ('Alert Count ' + alertCount);
         }
-        
+
         // ALERT! - create our updated opts
         const opts = { fields, "header": addTitleRow };
-  
+
         // append to the existing file (or create and append if needed)
         require("fs").appendFileSync(csv_path, `${parse(vulnerabilityNodes, opts)}\n`);
 
@@ -193,7 +188,7 @@ async function run(org_Name, repo_Name, csv_path) {
         console.log(`run(): addTitleRow: ${addTitleRow}`);
 
       });
-      
+
        core.setOutput('alerts_count', alertCount)
 
     } while (hasNextPage);
