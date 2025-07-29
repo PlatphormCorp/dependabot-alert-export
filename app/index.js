@@ -29,6 +29,7 @@ const query =
           totalCount
           nodes {
             id
+            number
             createdAt
             state
             dismissedAt
@@ -97,7 +98,7 @@ const query =
     },
     {
       label: 'Alert Link',
-      value: row => `https://github.com/${row.repository.owner.login}/${row.repository.name}/security/dependabot/${row.id}`
+      value: row => `https://github.com/${row.repository.owner.login}/${row.repository.name}/security/dependabot/${row.number}`
     }
   ];
 
