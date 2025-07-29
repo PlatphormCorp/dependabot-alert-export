@@ -54,6 +54,9 @@ const query =
                 name
               }
               vulnerableVersionRange
+                firstPatchedVersion {
+                  identifier
+                }
             }
             vulnerableManifestFilename
             vulnerableManifestPath
@@ -63,80 +66,39 @@ const query =
     }`
 
   // Our CSV output fields
-  const fields = [{
-    label: 'Owner',
-    value: 'repository.owner.login',
-    default: `${org_Name}`
-  },
-  {
-    label: 'Repository Name',
-    value: 'repository.name',
-    default: `${repo_Name}`
-  },
-  {
-    label: 'ID',
-    value: 'id'
-  },
-  {
-    label: 'State',
-    value: 'state'
-  },
-  {
-    label: 'Scope',
-    value: 'dependencyScope'
-  },
-  {
-    label: 'Created At',
-    value: 'createdAt'
-  },
-  {
-    label: 'Manifest File Name',
-    value: 'vulnerableManifestFilename'
-  },
-  {
-    label: 'Vulnerability Version Range',
-    value: 'securityVulnerability.vulnerableVersionRange'
-  },
-  {
-    label: 'Package Name',
-    value: 'securityVulnerability.package.name'
-  },
-  {
-    label: 'GHSA Id',
-    value: 'securityAdvisory.ghsaId'
-  },
-  {
-    label: 'Severity',
-    value: 'securityAdvisory.severity'
-  },
-  {
-    label: 'Summary',
-    value: 'securityAdvisory.summary'
-  },
-  {
-    label: 'Link',
-    value: 'securityAdvisory.permalink'
-  },
-  {
-    label: 'Description',
-    value: 'securityAdvisory.description'
-  },
-  {
-    label: 'Dismissed At',
-    value: 'dismissedAt'
-  },
-  {
-    label: 'Dismiss Reason',
-    value: 'dismissReason'
-  },
-  {
-    label: 'Dismiss Comment',
-    value: 'dismissComment'
-  },
-  {
-    label: 'Fixed At',
-    value: 'fixedAt'
-  }
+  const fields = [
+    {
+      label: 'Manifest',
+      value: 'vulnerableManifestPath'
+    },
+    {
+      label: 'Package Name',
+      value: 'securityVulnerability.package.name'
+    },
+    {
+      label: 'Impacted Version',
+      value: 'securityVulnerability.vulnerableVersionRange'
+    },
+    {
+      label: 'Patched Version',
+      value: 'securityVulnerability.firstPatchedVersion.identifier'
+    },
+    {
+      label: 'Severity',
+      value: 'securityAdvisory.severity'
+    },
+    {
+      label: 'Summary',
+      value: 'securityAdvisory.summary'
+    },
+    {
+      label: 'CVE Link',
+      value: 'securityAdvisory.permalink'
+    },
+    {
+      label: 'Alert Link',
+      value: row => `https://github.com/${row.repository.owner.login}/${row.repository.name}/security/dependabot/${row.id}`
+    }
   ];
 
 // graphql query execution
@@ -164,6 +126,15 @@ async function run(org_Name, repo_Name, csv_path) {
       // invoke the graphql query execution
       await getAlerts(org_Name, repo_Name, pagination).then(alertResult => {
         let vulnerabilityNodes = alertResult.repository.vulnerabilityAlerts.nodes;
+
+        // Filter for CRITICAL or HIGH severity and RUNTIME scope
+        vulnerabilityNodes = vulnerabilityNodes.filter(
+          node =>
+            (node.securityAdvisory.severity === 'CRITICAL' || node.securityAdvisory.severity === 'HIGH') &&
+            node.dependencyScope === 'RUNTIME' &&
+            !node.fixedAt &&
+            !node.dismissedAt
+        );
 
         if(addTitleRow){
           alertCount = alertResult.repository.vulnerabilityAlerts.totalCount;
